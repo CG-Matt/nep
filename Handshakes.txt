@@ -1,0 +1,27 @@
+Write Handshake:
+    Host   : Send PORT_WRITE
+    Host   : Send image_size
+    Device : ACK
+    Device : Echo image_size
+    Host   : ACK
+    Device : READY
+    Host   : Send page 1
+    Device : ACK
+    Device : READY
+    Host   : Send page x
+    Device : ACK
+    ...
+    Device : READY
+    Host   : Send page n - 1
+    Device : ACK
+
+Read Handshake:
+    Host   : Send PORT_DUMP
+    Host   : Send image_size
+    Device : ACK
+    Device : Echo image_size
+    Host   : ACK
+    Host   : READY
+    Device : Send dump
+    Host   : ACK
+    Device : ACK
