@@ -198,6 +198,26 @@ void SerialCommSetLSBFirst(struct SerialComm* port, uint8_t lsb_first)
     port->config.lsb_first = lsb_first;
 }
 
+void SerialCommAwaitData(struct SerialComm* p)
+{
+    // Setup time variables
+    time_t current_time = time(NULL);
+    time_t timeout_time = current_time + p->config.status_await_timeout;
+
+    // Variable to track if data has been sent
+    int timeout = 1;
+
+    // Await data until timeout
+    while(current_time < timeout_time)
+    {
+        if(SerialCommDataAvailable(p)){ timeout = 0; break; }
+        current_time = time(NULL);
+    }
+
+    p->status = timeout ? PORT_TIMEOUT : PORT_OK;
+    return;
+}
+
 int SerialCommAwaitBytes(struct SerialComm* p, int nbytes)
 {
     // Setup time variables

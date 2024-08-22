@@ -49,5 +49,6 @@ int SerialCommReadBytes(struct SerialComm* serial_port, size_t bytes_to_read);
 uint16_t SerialCommReadU16(struct SerialComm* serial_port);
 uint32_t SerialCommReadU32(struct SerialComm* serial_port);
 
+void SerialCommAwaitData(struct SerialComm* serial_port);
 int SerialCommAwaitBytes(struct SerialComm* serial_port, int no_bytes);
 int SerialCommAwaitStatus(struct SerialComm* serial_port);
