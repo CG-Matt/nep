@@ -19,7 +19,9 @@
 #define oflush() fflush(stdout)
 #define eprintf(args...) fprintf(stderr, args)
 
+// Initialising global variables
 static char* executable_name = NULL;
+static int exit_code = EXIT_SUCCESS;
 
 /* Update this to be more accurate */
 void print_usage()
@@ -69,6 +71,7 @@ int get_device_signature(struct SerialComm* device_port)
 }
 
 // Send the image size to the device and validate correct echo of size
+// Sets exit_code to ```EXIT_FAILURE``` if an error is encountered
 int SendImageSize(struct SerialComm* port, uint32_t size)
 {
     SerialCommSendU32(port, size);          // Send the image size
@@ -77,6 +80,7 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     if(port->status != PORT_ACK)
     {
         eprintf("Device did not acknowledge image size receive\n");
+        exit_code = EXIT_FAILURE;
         return 0;
     }
 
@@ -85,6 +89,7 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     if(port->status == PORT_TIMEOUT)
     {
         eprintf("Port timed out awaiting u32 value\n");
+        exit_code = EXIT_FAILURE;
         return 0;
     }
 
@@ -92,6 +97,7 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     {
         SerialCommSendByte(port, PORT_NAK);
         eprintf("Image size did not echo correct (0x%08X) [%02X %02X %02X %02X]\n", r_size, port->receive_buffer[3], port->receive_buffer[2], port->receive_buffer[1], port->receive_buffer[0]);
+        exit_code = EXIT_FAILURE;
         return 0;
     }
 
@@ -257,16 +263,16 @@ int main(int argc, char** argv)
 
             SerialCommSendByte(&port, PORT_DUMP);   // Request a dump of the EEPROM
             if(!SendImageSize(&port, image_size))   // Error message will be already printed by SendImageSize
-                return -1;
+                break;
 
             // Open file for writing
-
             FILE* eeprom_data = tmpfile();
             if(!eeprom_data){ perror("Unable to open dump file for writing"); SerialCommClosePort(&port); return -1; }
 
             size_t bytes_received = 0;
             size_t bytes_received_wrap = 0;
             size_t kb_received = 0;
+            int dump_ok = true;
 
             printf("Dumping:");
             oflush();
@@ -282,7 +288,8 @@ int main(int argc, char** argv)
                 if(port.status == PORT_TIMEOUT)
                 {
                     eprintf("\nDevice has stopped responding.\n");
-                    return 1;
+                    dump_ok = false;
+                    break;
                 }
                 bytes_read = SerialCommReadPortAll(&port);
                 fwrite(port.receive_buffer, 1, bytes_read, eeprom_data);
@@ -296,6 +303,12 @@ int main(int argc, char** argv)
                     oflush();
                     bytes_received_wrap -= 1024;
                 }
+            }
+
+            if(!dump_ok)
+            {
+                exit_code = EXIT_FAILURE;
+                break;
             }
 
             rewind(eeprom_data);
@@ -368,7 +381,7 @@ int main(int argc, char** argv)
 
             SerialCommSendByte(&port, PORT_WRITE);  // Request to write to EEPROM
             if(!SendImageSize(&port, image_size))   // Error message will be already printed by SendImageSize
-                return -1;
+                break;
 
             size_t pages_sent = 0;
 
@@ -426,5 +439,5 @@ int main(int argc, char** argv)
     }
 
     SerialCommClosePort(&port);
-    return 0;
+    return exit_code;
 }
