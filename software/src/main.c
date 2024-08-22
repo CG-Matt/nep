@@ -123,7 +123,11 @@ int main(int argc, char** argv)
 
     /* Open the serial port */
     SerialCommOpenPort(&port, serial_port_name, 0x200);
-    if(port.port_fd < 0){ perror("Unable to open serial port"); return -1; }
+    if(port.port_fd < 0)
+    {
+        perror("Unable to open serial port");
+        return -1;
+    }
 
     /* Set up serial port */
     SerialCommSetBaudrate(&port, B115200);
@@ -147,30 +151,35 @@ int main(int argc, char** argv)
         // Request device to print EEPROM contents
         case MODE_READ:
         {
-            // If the read command was follow by a file name it mean we want to dump the contents
             if(!args.output)
             {
                 SerialCommSendByte(&port, PORT_READ);
                 while(1)
                 {
-                    while(!SerialCommDataAvailable(&port)) continue;
-                    size_t bytes_received = SerialCommReadPortAll(&port);   // Read all data from the serial port into the buffer
-                    port.receive_buffer[bytes_received] = '\0';
-                    printf("%s", port.receive_buffer); // Print buffer contents
+                    SerialCommAwaitData(&port);
+                    if(port.status == PORT_TIMEOUT)
+                    {
+                        eprintf("\nDevice has stopped responding.\n");
+                        break;
+                    }
 
-                    if(port.receive_buffer[bytes_received - 1] == 0) // Check if last transmitted byte was a null byte
-                        break; // If so transmission ended
+                    size_t bytes_received = SerialCommReadPortAll(&port);
+                    port.receive_buffer[bytes_received] = '\0';             // Append null byte so that the data can be printed as a string
+                    printf("%s", port.receive_buffer);
+
+                    if(port.receive_buffer[bytes_received - 1] == 0)        // If last transmitted byte was a null byte, transmission ended
+                        break;
                 }
                 break;
             }
 
+            // If an output file was specified we will be dumping the EEPROMs contents into it
             if(!args.size)
             {
                 eprintf("No file size was provided for the dump\n");
                 return 1;
             }
 
-            // Improve image size parser
             uint32_t image_size = ParseImageSize(args.size);
 
             SerialCommSendByte(&port, PORT_DUMP);   // Request a dump of the EEPROM
@@ -195,8 +204,13 @@ int main(int argc, char** argv)
             while(bytes_received < image_size)
             {
                 size_t bytes_read = 0;
-                while(!SerialCommDataAvailable(&port)) continue;
 
+                SerialCommAwaitData(&port);
+                if(port.status == PORT_TIMEOUT)
+                {
+                    eprintf("\nDevice has stopped responding.");
+                    break;
+                }
                 bytes_read = SerialCommReadPortAll(&port);
                 fwrite(port.receive_buffer, 1, bytes_read, dump);
                 bytes_received += bytes_read;
@@ -263,8 +277,13 @@ int main(int argc, char** argv)
             while(bytes_received < image_size)
             {
                 size_t bytes_read = 0;
-                while(!SerialCommDataAvailable(&port)) continue;
 
+                SerialCommAwaitData(&port);
+                if(port.status == PORT_TIMEOUT)
+                {
+                    eprintf("\nDevice has stopped responding.\n");
+                    return 1;
+                }
                 bytes_read = SerialCommReadPortAll(&port);
                 fwrite(port.receive_buffer, 1, bytes_read, eeprom_data);
                 bytes_received += bytes_read;
@@ -284,13 +303,13 @@ int main(int argc, char** argv)
             printf("\nVerifying: ");
             oflush();
 
-            int ok = 1;
+            int ok = true;
+
+            uint8_t image_byte;
+            uint8_t eeprom_byte;
 
             for(size_t i = 0; i < image_size; i++)
             {
-                uint8_t image_byte;
-                uint8_t eeprom_byte;
-
                 fread(&image_byte, 1, 1, image);
                 fread(&eeprom_byte, 1, 1, eeprom_data);
 
@@ -388,15 +407,15 @@ int main(int argc, char** argv)
                     SerialCommSendByte(&port, image_data[(pages_sent * 256) + i]);
                 }
 
-                SerialCommAwaitStatus(&port); // Await acknowledge (resent page if not acknowledged)
+                SerialCommAwaitStatus(&port); // Await acknowledge
 
                 if(port.status != PORT_ACK){ puts("Device did not acknowledge, resending page..."); /* Finish this */ }
                 // else puts("ACK");
 
                 pages_sent++;
-                if((pages_sent * 256) % 1024 == 0)
+                if((pages_sent << 8) % 1024 == 0)
                 {
-                    printf(" %luK", (pages_sent * 256) / 1024);
+                    printf(" %luK", pages_sent >> 2);
                     oflush();
                 }
             }
