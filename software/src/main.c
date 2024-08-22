@@ -16,6 +16,7 @@
 #define PORT_P_DIS   'D'
 #define PORT_DUMP    'B'
 
+#define oflush() fflush(stdout)
 #define eprintf(args...) fprintf(stderr, args)
 
 static char* executable_name = NULL;
@@ -186,7 +187,7 @@ int main(int argc, char** argv)
             size_t kb_received = 0;
 
             printf("Dumping:");
-            fflush(stdout);
+            oflush();
 
             // Ready to receive data
             SerialCommSendByte(&port, PORT_RDY);
@@ -205,7 +206,7 @@ int main(int argc, char** argv)
                 {
                     kb_received++;
                     printf(" %zuK", kb_received);
-                    fflush(stdout);
+                    oflush();
                     bytes_received_wrap -= 1024;
                 }
             }
@@ -254,7 +255,7 @@ int main(int argc, char** argv)
             size_t kb_received = 0;
 
             printf("Dumping:");
-            fflush(stdout);
+            oflush();
 
             // Ready to receive data
             SerialCommSendByte(&port, PORT_RDY);
@@ -273,7 +274,7 @@ int main(int argc, char** argv)
                 {
                     kb_received++;
                     printf(" %zuK", kb_received);
-                    fflush(stdout);
+                    oflush();
                     bytes_received_wrap -= 1024;
                 }
             }
@@ -281,7 +282,7 @@ int main(int argc, char** argv)
             rewind(eeprom_data);
 
             printf("\nVerifying: ");
-            fflush(stdout);
+            oflush();
 
             int ok = 1;
 
@@ -353,7 +354,7 @@ int main(int argc, char** argv)
             size_t pages_sent = 0;
 
             printf("Writing:");
-            fflush(stdout);
+            oflush();
 
             while((pages_sent * 256) < image_size)
             {
@@ -396,7 +397,7 @@ int main(int argc, char** argv)
                 if((pages_sent * 256) % 1024 == 0)
                 {
                     printf(" %luK", (pages_sent * 256) / 1024);
-                    fflush(stdout);
+                    oflush();
                 }
             }
 
