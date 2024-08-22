@@ -4,7 +4,8 @@
 #include "SerialComm.h"
 #include "args_parser.h"
 
-// Define true to not include bool.h
+// Define true and false to not include bool.h
+#define false 0
 #define true 1
 
 // Non-standard SerialComm Signals
