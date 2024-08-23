@@ -58,9 +58,27 @@ int SerialCommDataAvailable(struct SerialComm* serial_port)
     return bytes_present;
 }
 
+void SerialCommSendBytesExt(struct SerialComm* port, void* src, size_t count)
+{
+    write(port->port_fd, src, count);
+}
+
+int SerialCommReadBytesExt(struct SerialComm* serial_port, void* dest, size_t bytes_to_read)
+{
+    // Buffer size check!!!
+    SerialCommAwaitBytes(serial_port, bytes_to_read);
+    if(serial_port->status == PORT_TIMEOUT) return 0;
+    return read(serial_port->port_fd, dest, bytes_to_read);
+}
+
+void SerialCommSendBytes(struct SerialComm* port, size_t count)
+{
+    SerialCommSendBytesExt(port, port->send_buffer, count);
+}
+
 void SerialCommSendByte(struct SerialComm* port, uint8_t data)
 {
-    write(port->port_fd, &data, 1);
+    SerialCommSendBytesExt(port, &data, 1);
 }
 
 void SerialCommSendU16(struct SerialComm* port, uint16_t data)
@@ -85,7 +103,7 @@ void SerialCommSendU16(struct SerialComm* port, uint16_t data)
     }
 
     // Send data over the serial port
-    write(port->port_fd, port->send_buffer, 2);
+    SerialCommSendBytes(port, 2);
 }
 
 void SerialCommSendU32(struct SerialComm* port, uint32_t data)
@@ -110,22 +128,22 @@ void SerialCommSendU32(struct SerialComm* port, uint32_t data)
     }
 
     // Send data over the serial port
-    write(port->port_fd, port->send_buffer, 4);
+    SerialCommSendBytes(port, 4);
 }
 
-int SerialCommReadPortAll(struct SerialComm* serial_port)
+int SerialCommReadPortAll(struct SerialComm* port)
 {
-    int bytes_present = SerialCommDataAvailable(serial_port);
+    int bytes_present = SerialCommDataAvailable(port);
     if(bytes_present < 1){ return 0; }
-    int bytes_read = read(serial_port->port_fd, serial_port->receive_buffer, bytes_present);
-    return bytes_read;
+    return SerialCommReadBytes(port, bytes_present);
 }
 
-int SerialCommReadBytes(struct SerialComm* serial_port, size_t bytes_to_read)
+int SerialCommReadBytes(struct SerialComm* port, size_t count)
 {
-    SerialCommAwaitBytes(serial_port, bytes_to_read);
-    if(serial_port->status == PORT_TIMEOUT) return 0;
-    return read(serial_port->port_fd, serial_port->receive_buffer, bytes_to_read);
+    // Buffer size check!!!
+    SerialCommAwaitBytes(port, count);
+    if(port->status == PORT_TIMEOUT) return 0;
+    SerialCommReadBytesExt(&port, port->receive_buffer, count);
 }
 
 uint16_t SerialCommReadU16(struct SerialComm* port)
@@ -246,33 +264,28 @@ int SerialCommAwaitBytes(struct SerialComm* p, int nbytes)
     return 0;
 }
 
-int SerialCommAwaitStatus(struct SerialComm* serial_port)
+int SerialCommAwaitStatus(struct SerialComm* port)
 {
     // Setup time variables
     time_t current_time = time(NULL);
-    time_t timeout_time = current_time + serial_port->config.status_await_timeout;
+    time_t timeout_time = current_time + port->config.status_await_timeout;
 
     // Variable to track if status was sent
-    int ok = 0;
+    int timeout = 1;
 
     // Await data until timeout
     while(current_time < timeout_time)
     {
-        if(SerialCommDataAvailable(serial_port)){ ok = 1; break; }
+        if(SerialCommDataAvailable(port)){ timeout = 0; break; }
         current_time = time(NULL);
     }
 
-    // If we timed out, return
-    if(!ok)
-    {
-        serial_port->status = PORT_TIMEOUT;
-        return -1;
-    }
+    port->status = timeout ? PORT_TIMEOUT : PORT_OK;
+    if(timeout) return 1;
 
     // If we did not time out then read the data on the port into the status field
     // We can make the assumption that there is at least 1 byte of data on the port
     // Technically there should be a check here to ensure the data was read correctly but we will ignore that for now
-    serial_port->status = PORT_OK;
-    read(serial_port->port_fd, &serial_port->status, 1);
+    SerialCommReadBytesExt(port, &port->status, 1);
     return 0;
 }

@@ -41,11 +41,14 @@ void SerialCommSetBaudrate(struct SerialComm* serial_port, int baud_rate);
 int SerialCommDataAvailable(struct SerialComm* serial_port);
 
 void SerialCommSendByte(struct SerialComm* serial_port, uint8_t data);
+void SerialCommSendBytes(struct SerialComm* serial_port, size_t bytes_to_write);
+void SerialCommSendBytesExt(struct SerialComm* serial_port, void* src, size_t bytes_to_write);
 void SerialCommSendU16(struct SerialComm* serial_port, uint16_t data);
 void SerialCommSendU32(struct SerialComm* serial_port, uint32_t data);
 
 int SerialCommReadPortAll(struct SerialComm* serial_port);
 int SerialCommReadBytes(struct SerialComm* serial_port, size_t bytes_to_read);
+int SerialCommReadBytesExt(struct SerialComm* serial_port, void* dest, size_t bytes_to_read);
 uint16_t SerialCommReadU16(struct SerialComm* serial_port);
 uint32_t SerialCommReadU32(struct SerialComm* serial_port);
 
