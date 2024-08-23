@@ -25,6 +25,19 @@ struct SerialCommConfig
 
 #ifdef _WIN32
 
+// Define baudrates to be unix style
+#define B110        CBR_110
+#define B300        CBR_300
+#define B600        CBR_600
+#define B1200       CBR_1200
+#define B2400       CBR_2400
+#define B4800       CBR_4800
+#define B9600       CBR_9600
+#define B19200      CBR_19200
+#define B38400      CBR_38400
+#define B57600      CBR_57600
+#define B115200     CBR_115200
+
 struct SerialComm
 {
     HANDLE hport;
