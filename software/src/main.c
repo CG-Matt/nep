@@ -255,7 +255,7 @@ int main(int argc, char** argv)
         {
             if(!args.input)
             {
-                fprintf(stderr, "No image was provided to verify the EEPROM's data against\n");
+                eprintf("No image was provided to verify the EEPROM's data against\n");
                 exit_code = EXIT_FAILURE;
                 break;
             }
@@ -407,9 +407,9 @@ int main(int argc, char** argv)
             FILE* image_file = OpenFile(args.input, "rb");
             if(!image_file)
             {
-perror("Unable to open image file");
+                perror("Unable to open image file");
                 break;
-}
+            }
 
             uint32_t image_size = FileSize(image_file);
             uint8_t* image_data = malloc(image_size);
