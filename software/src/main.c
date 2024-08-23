@@ -151,7 +151,12 @@ int main(int argc, char** argv)
     SerialCommSetLSBFirst(&port, true);
 
     /* Apply settings to serial port */
-    SerialCommApplyOptions(&port);
+    if(!SerialCommApplyOptions(&port))
+    {
+        perror("Failure to apply port configuration");
+        SerialCommClosePort(&port);
+        return EXIT_FAILURE;
+    }
 
     /* Port is now ready for serial communication */
 

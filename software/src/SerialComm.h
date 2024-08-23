@@ -33,7 +33,7 @@ struct SerialComm
 // Serial Communication Port Initialisation, Deinitialisation and Configuration
 int SerialCommOpenPort(struct SerialComm* serial_port, const char* port_path, size_t buffer_size);
 void SerialCommClosePort(struct SerialComm* serial_port);
-void SerialCommApplyOptions(struct SerialComm* serial_port);
+int SerialCommApplyOptions(struct SerialComm* serial_port);
 void SerialCommSetTimeout(struct SerialComm* serial_port, size_t s);
 void SerialCommSetLSBFirst(struct SerialComm* serial_port, uint8_t lsb_first);
 void SerialCommSetBaudrate(struct SerialComm* serial_port, int baud_rate);

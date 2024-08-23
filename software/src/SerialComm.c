@@ -45,10 +45,10 @@ void SerialCommSetBaudrate(struct SerialComm* p, int baud_rate)
     p->options.c_cflag = baud_rate | p->config.control_flags;
 }
 
-void SerialCommApplyOptions(struct SerialComm* serial_port)
+int SerialCommApplyOptions(struct SerialComm* port)
 {
-    tcflush(serial_port->port_fd, TCIFLUSH);
-    tcsetattr(serial_port->port_fd, TCSANOW, &serial_port->options);
+    tcflush(port->port_fd, TCIFLUSH);
+    return tcsetattr(port->port_fd, TCSANOW, &port->options) == 0 ? 1 : 0;
 }
 
 int SerialCommDataAvailable(struct SerialComm* serial_port)
