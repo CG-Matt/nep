@@ -106,6 +106,16 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     return 1;
 }
 
+/*
+    Wrapper function for the standard fopen() function which also sets the exit_code upon failure
+*/
+static inline FILE* OpenFile(const char*__restrict__ filename, const char*__restrict__ modes)
+{
+    FILE* f = fopen(filename, modes);
+    if(!f) exit_code = EXIT_FAILURE;
+    return f;
+}
+
 int main(int argc, char** argv)
 {
     executable_name = argv[0];  // First argument is the name of the file being executed
@@ -183,19 +193,22 @@ int main(int argc, char** argv)
             if(!args.size)
             {
                 eprintf("No file size was provided for the dump\n");
-                return 1;
+                print_usage();
             }
 
             uint32_t image_size = ParseImageSize(args.size);
 
             SerialCommSendByte(&port, PORT_DUMP);   // Request a dump of the EEPROM
             if(!SendImageSize(&port, image_size))   // Error message will be already printed by SendImageSize
-                return -1;
+                break;
 
             // Open dump file for writing
-
-            FILE* dump = fopen(args.output, "wb");
-            if(!dump){ perror("Unable to open dump file for writing"); SerialCommClosePort(&port); return -1; }
+            FILE* dump = OpenFile(args.output, "wb");
+            if(!dump)
+            {
+                perror("Unable to open dump file for writing");
+                break;
+            }
 
             size_t bytes_received = 0;
             size_t bytes_received_wrap = 0;
@@ -243,7 +256,8 @@ int main(int argc, char** argv)
             if(!args.input)
             {
                 fprintf(stderr, "No image was provided to verify the EEPROM's data against\n");
-                return -1;
+                exit_code = EXIT_FAILURE;
+                break;
             }
 
             FILE* out_file = NULL;
@@ -251,13 +265,21 @@ int main(int argc, char** argv)
             /* If an output file is provided */
             if(args.output)
             {
-                out_file = fopen(args.output, "w");
-                if(!out_file){ perror("Unable to open output file"); return 1; }
+                out_file = OpenFile(args.output, "w");
+                if(!out_file)
+                {
+                    perror("Unable to open output file");
+                    break;
+                }
             }
 
             /* Open file to compare EEPROM data against */
-            FILE* image = fopen(args.input, "rb");
-            if(!image){ perror("Unable to open image file"); return 1; }
+            FILE* image = OpenFile(args.input, "rb");
+            if(!image)
+            {
+                perror("Unable to open image file");
+                break;
+            }
 
             uint32_t image_size = FileSize(image);
 
@@ -267,7 +289,12 @@ int main(int argc, char** argv)
 
             // Open file for writing
             FILE* eeprom_data = tmpfile();
-            if(!eeprom_data){ perror("Unable to open dump file for writing"); SerialCommClosePort(&port); return -1; }
+            if(!eeprom_data)
+            {
+                perror("Unable to open dump file for writing");
+                exit_code = EXIT_FAILURE;
+                break;
+            }
 
             size_t bytes_received = 0;
             size_t bytes_received_wrap = 0;
@@ -367,8 +394,12 @@ int main(int argc, char** argv)
         {
             if(!args.input){ eprintf("No image filename provided\n"); print_usage(); }
 
-            FILE* image_file = fopen(args.input, "rb");
-            if(!image_file){ perror("Unable to open image file"); SerialCommClosePort(&port); return -1; }
+            FILE* image_file = OpenFile(args.input, "rb");
+            if(!image_file)
+            {
+perror("Unable to open image file");
+                break;
+}
 
             uint32_t image_size = FileSize(image_file);
             uint8_t* image_data = malloc(image_size);
