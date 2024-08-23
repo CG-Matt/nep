@@ -278,6 +278,7 @@ int main(int argc, char** argv)
             if(!image)
             {
                 perror("Unable to open image file");
+                if(out_file) fclose(out_file);
                 break;
             }
 
@@ -285,13 +286,19 @@ int main(int argc, char** argv)
 
             SerialCommSendByte(&port, PORT_DUMP);   // Request a dump of the EEPROM
             if(!SendImageSize(&port, image_size))   // Error message will be already printed by SendImageSize
+            {
+                if(out_file) fclose(out_file);
+                fclose(image);
                 break;
+            }
 
             // Open file for writing
             FILE* eeprom_data = tmpfile();
             if(!eeprom_data)
             {
                 perror("Unable to open dump file for writing");
+                if(out_file) fclose(out_file);
+                fclose(image);
                 exit_code = EXIT_FAILURE;
                 break;
             }
@@ -334,6 +341,9 @@ int main(int argc, char** argv)
 
             if(!dump_ok)
             {
+                if(out_file) fclose(out_file);
+                fclose(eeprom_data);
+                fclose(image);
                 exit_code = EXIT_FAILURE;
                 break;
             }
@@ -412,7 +422,10 @@ perror("Unable to open image file");
 
             SerialCommSendByte(&port, PORT_WRITE);  // Request to write to EEPROM
             if(!SendImageSize(&port, image_size))   // Error message will be already printed by SendImageSize
+            {
+                free(image_data);
                 break;
+            }
 
             size_t pages_sent = 0;
 
@@ -425,7 +438,9 @@ perror("Unable to open image file");
 
                 if(port.status == PORT_TIMEOUT)
                 {
-                    puts("\nPort timed out exiting...");
+                    puts("\nPort timed out, exiting...");
+                    free(image_data);
+                    SerialCommClosePort(&port);
                     return 1;
                 }
 
@@ -436,6 +451,8 @@ perror("Unable to open image file");
                     if(port.status == PORT_TIMEOUT)
                     {
                         eprintf("The port timed out while reading device error\n");
+                        free(image_data);
+                        SerialCommClosePort(&port);
                         return 1;
                     }
 
@@ -444,7 +461,13 @@ perror("Unable to open image file");
                 }
 
                 // This should error or block
-                if(port.status != PORT_RDY){ printf("Device sent unexpected signal [%2hhX] (Awaiting ready)\n", port.status); return 1; }
+                if(port.status != PORT_RDY)
+                {
+                    printf("Device sent unexpected signal [%2hhX] (Awaiting ready)\n", port.status);
+                    free(image_data);
+                    SerialCommClosePort(&port);
+                    return 1;
+                }
 
                 for(size_t i = 0; i < 256; i++)
                 {
