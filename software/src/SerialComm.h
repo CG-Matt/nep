@@ -1,7 +1,12 @@
 #pragma once
 
 #include <stdint.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <termios.h>
+#endif
 
 #define PORT_TIMEOUT -1
 #define PORT_OK       0
@@ -18,6 +23,22 @@ struct SerialCommConfig
     int baud_rate;
 };
 
+#ifdef _WIN32
+
+struct SerialComm
+{
+    HANDLE hport;
+    int status;
+    DCB options;
+    struct SerialCommConfig config;
+    uint8_t* send_buffer;
+    uint8_t* receive_buffer;
+    size_t send_buffer_size;
+    size_t receive_buffer_size;
+};
+
+#else
+
 struct SerialComm
 {
     int port_fd;
@@ -29,6 +50,8 @@ struct SerialComm
     size_t send_buffer_size;
     size_t receive_buffer_size;
 };
+
+#endif
 
 // Serial Communication Port Initialisation, Deinitialisation and Configuration
 int SerialCommOpenPort(struct SerialComm* serial_port, const char* port_path, size_t buffer_size);

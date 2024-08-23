@@ -1,10 +1,79 @@
 #include <stdlib.h>
+#include <time.h>
+#include "SerialComm.h"
+
+#ifdef _WIN32
+
+int SerialCommOpenPort(struct SerialComm* p, const char* p_path, size_t buffer_size)
+{
+    // Make a check to ensure that the buffer size provided is > 0
+
+    /* Open the serial port file */
+    p->hport = CreateFile(p_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if(p->hport == INVALID_HANDLE_VALUE){ return 0; }
+
+    Sleep(2000); // Allow the arduino time to reset
+
+    /* Allocate memory for the buffers */
+    p->send_buffer = malloc(buffer_size); // Maybe make the send buffer a fixed size Max data that we would ever send would be 8 bytes for U64
+    p->receive_buffer = malloc(buffer_size);
+    p->send_buffer_size = buffer_size;
+    p->receive_buffer_size = buffer_size;
+
+    /* Initialise and set config to default values */
+    SecureZeroMemory(&p->options, sizeof(DCB));
+    p->options.DCBlength = sizeof(DCB);
+
+    if(!GetCommState(p->hport, &p->options))
+        return 0;
+
+    p->options.BaudRate = CBR_9600;
+    p->options.ByteSize = 8;
+    p->options.Parity   = NOPARITY;
+    p->options.StopBits = ONESTOPBIT;
+
+    return 1;
+}
+
+void SerialCommSetBaudrate(struct SerialComm* p, int baud_rate)
+{
+    p->options.BaudRate = baud_rate;
+}
+
+int SerialCommApplyOptions(struct SerialComm* p)
+{
+    return SetCommState(p->hport, &p->options);
+}
+
+int SerialCommDataAvailable(struct SerialComm* p)
+{
+    COMSTAT stat;
+    ClearCommError(p->hport, NULL, &stat);
+    return stat.cbInQue;
+}
+
+void SerialCommSendBytesExt(struct SerialComm* port, void* src, size_t count)
+{
+    long unsigned int bytes_written;
+    WriteFile(port->hport, src, count, &bytes_written, NULL);
+    printf("Writing data: E:%d W:%ld\n", (int)count, bytes_written);
+}
+
+int SerialCommReadBytesExt(struct SerialComm* port, void* dest, size_t count)
+{
+    // Buffer size check!!!
+    SerialCommAwaitBytes(port, count);
+    if(port->status == PORT_TIMEOUT) return 0;
+    long unsigned int bytes_read;
+    ReadFile(port->hport, dest, count, &bytes_read, NULL);
+    return bytes_read;
+}
+
+#else
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <termios.h>
-#include <time.h>
-#include "SerialComm.h"
 
 int SerialCommOpenPort(struct SerialComm* p, const char* p_path, size_t buffer_size)
 {
@@ -12,7 +81,7 @@ int SerialCommOpenPort(struct SerialComm* p, const char* p_path, size_t buffer_s
 
     /* Open the serial port file */
     p->port_fd = open(p_path, O_RDWR | O_NDELAY | O_NOCTTY);
-    if(p->port_fd < 0){ return p->port_fd; }
+    if(p->port_fd < 0){ return 0; }
 
     /* Allocate memory for the buffers */
     p->send_buffer = malloc(buffer_size); // Maybe make the send buffer a fixed size Max data that we would ever send would be 8 bytes for U64
@@ -27,17 +96,7 @@ int SerialCommOpenPort(struct SerialComm* p, const char* p_path, size_t buffer_s
     p->options.c_oflag = 0;
     p->options.c_lflag = 0;
 
-    return 0;
-}
-
-void SerialCommClosePort(struct SerialComm* p)
-{
-    /* Close the serial port file */
-    close(p->port_fd);
-
-    /* Free the buffers' memory */
-    free(p->send_buffer);
-    free(p->receive_buffer);
+    return 1;
 }
 
 void SerialCommSetBaudrate(struct SerialComm* p, int baud_rate)
@@ -69,6 +128,22 @@ int SerialCommReadBytesExt(struct SerialComm* serial_port, void* dest, size_t by
     SerialCommAwaitBytes(serial_port, bytes_to_read);
     if(serial_port->status == PORT_TIMEOUT) return 0;
     return read(serial_port->port_fd, dest, bytes_to_read);
+}
+
+#endif
+
+void SerialCommClosePort(struct SerialComm* p)
+{
+    /* Close the serial port file */
+#ifdef _WIN32
+    CloseHandle(p->hport);
+#else
+    close(p->port_fd);
+#endif
+
+    /* Free the buffers' memory */
+    free(p->send_buffer);
+    free(p->receive_buffer);
 }
 
 void SerialCommSendBytes(struct SerialComm* port, size_t count)
