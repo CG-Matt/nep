@@ -143,7 +143,7 @@ int SerialCommReadBytes(struct SerialComm* port, size_t count)
     // Buffer size check!!!
     SerialCommAwaitBytes(port, count);
     if(port->status == PORT_TIMEOUT) return 0;
-    SerialCommReadBytesExt(&port, port->receive_buffer, count);
+    return SerialCommReadBytesExt(port, port->receive_buffer, count);
 }
 
 uint16_t SerialCommReadU16(struct SerialComm* port)
