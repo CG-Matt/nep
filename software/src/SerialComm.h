@@ -19,7 +19,6 @@ struct SerialCommConfig
 {
     uint8_t lsb_first; // 0: MSB first | 1: LSB first
     size_t status_await_timeout;
-    int control_flags;
     int baud_rate;
 };
 

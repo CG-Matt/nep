@@ -90,8 +90,7 @@ int SerialCommOpenPort(struct SerialComm* p, const char* p_path, size_t buffer_s
     p->receive_buffer_size = buffer_size;
 
     /* Set config to default values */
-    p->config.control_flags = CS8 | CLOCAL | CREAD;
-    p->options.c_cflag = B9600 | p->config.control_flags;
+    p->options.c_cflag = B9600 | CS8 | CLOCAL | CREAD;
     p->options.c_iflag = IGNPAR;
     p->options.c_oflag = 0;
     p->options.c_lflag = 0;
@@ -101,7 +100,8 @@ int SerialCommOpenPort(struct SerialComm* p, const char* p_path, size_t buffer_s
 
 void SerialCommSetBaudrate(struct SerialComm* p, int baud_rate)
 {
-    p->options.c_cflag = baud_rate | p->config.control_flags;
+    cfsetospeed(&p->options, baud_rate);
+    cfsetispeed(&p->options, baud_rate);
 }
 
 int SerialCommApplyOptions(struct SerialComm* port)
@@ -218,7 +218,7 @@ int SerialCommReadBytes(struct SerialComm* port, size_t count)
     // Buffer size check!!!
     SerialCommAwaitBytes(port, count);
     if(port->status == PORT_TIMEOUT) return 0;
-    SerialCommReadBytesExt(&port, port->receive_buffer, count);
+    return SerialCommReadBytesExt(port, port->receive_buffer, count);
 }
 
 uint16_t SerialCommReadU16(struct SerialComm* port)
@@ -346,17 +346,16 @@ int SerialCommAwaitStatus(struct SerialComm* port)
     time_t timeout_time = current_time + port->config.status_await_timeout;
 
     // Variable to track if status was sent
-    int timeout = 1;
+    port->status = PORT_TIMEOUT;
 
     // Await data until timeout
     while(current_time < timeout_time)
     {
-        if(SerialCommDataAvailable(port)){ timeout = 0; break; }
+        if(SerialCommDataAvailable(port)){ port->status = PORT_OK; break; }
         current_time = time(NULL);
     }
 
-    port->status = timeout ? PORT_TIMEOUT : PORT_OK;
-    if(timeout) return 1;
+    if(port->status == PORT_TIMEOUT) return 1;
 
     // If we did not time out then read the data on the port into the status field
     // We can make the assumption that there is at least 1 byte of data on the port

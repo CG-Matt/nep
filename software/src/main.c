@@ -92,6 +92,13 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     SerialCommSendU32(port, size);          // Send the image size
     SerialCommAwaitStatus(port);            // Await for an ACK
 
+    if(port->status == PORT_TIMEOUT)
+    {
+        eprintf("Devices has not responded. Timing out...\n");
+        exit_code = EXIT_FAILURE;
+        return 0;
+    }
+
     if(port->status != PORT_ACK)
     {
         eprintf("Device did not acknowledge image size receive\n");
