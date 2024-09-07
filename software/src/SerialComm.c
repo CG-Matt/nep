@@ -21,8 +21,7 @@ int SerialCommOpenPort(struct SerialComm* p, const char* p_path, size_t buffer_s
     p->receive_buffer_size = buffer_size;
 
     /* Set config to default values */
-    p->config.control_flags = CS8 | CLOCAL | CREAD;
-    p->options.c_cflag = B9600 | p->config.control_flags;
+    p->options.c_cflag = B9600 | CS8 | CLOCAL | CREAD;
     p->options.c_iflag = IGNPAR;
     p->options.c_oflag = 0;
     p->options.c_lflag = 0;
@@ -42,7 +41,8 @@ void SerialCommClosePort(struct SerialComm* p)
 
 void SerialCommSetBaudrate(struct SerialComm* p, int baud_rate)
 {
-    p->options.c_cflag = baud_rate | p->config.control_flags;
+    cfsetospeed(&p->options, baud_rate);
+    cfsetispeed(&p->options, baud_rate);
 }
 
 int SerialCommApplyOptions(struct SerialComm* port)
