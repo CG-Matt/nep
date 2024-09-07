@@ -271,17 +271,16 @@ int SerialCommAwaitStatus(struct SerialComm* port)
     time_t timeout_time = current_time + port->config.status_await_timeout;
 
     // Variable to track if status was sent
-    int timeout = 1;
+    port->status = PORT_TIMEOUT;
 
     // Await data until timeout
     while(current_time < timeout_time)
     {
-        if(SerialCommDataAvailable(port)){ timeout = 0; break; }
+        if(SerialCommDataAvailable(port)){ port->status = PORT_OK; break; }
         current_time = time(NULL);
     }
 
-    port->status = timeout ? PORT_TIMEOUT : PORT_OK;
-    if(timeout) return 1;
+    if(port->status == PORT_TIMEOUT) return 1;
 
     // If we did not time out then read the data on the port into the status field
     // We can make the assumption that there is at least 1 byte of data on the port
