@@ -14,6 +14,8 @@ int SerialCommOpenPort(struct SerialComm* p, const char* p_path, size_t buffer_s
     p->port_fd = open(p_path, O_RDWR | O_NDELAY | O_NOCTTY);
     if(p->port_fd < 0){ return p->port_fd; }
 
+    sleep(2);
+
     /* Allocate memory for the buffers */
     p->send_buffer = malloc(buffer_size); // Maybe make the send buffer a fixed size Max data that we would ever send would be 8 bytes for U64
     p->receive_buffer = malloc(buffer_size);
