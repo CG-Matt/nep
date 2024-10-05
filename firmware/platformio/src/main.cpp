@@ -44,13 +44,13 @@ void printContents()
     Make a uint32_t from a buffer of 4 uint8_t
     Data must be LSB first
 */
-uint32_t shiftInU32(uint8_t* u32_start)
+inline uint32_t SerialShiftInU32()
 {
-    uint32_t ret = 0;
+    uint32_t ret;
     for(uint8_t i = 0; i < 4; i++)
     {
-        ret <<= 8;
-        ret |= u32_start[3 - i];
+        while(!Serial.available()) continue;  // Loop until serial is available
+        ((uint8_t*)(&ret))[i] = Serial.read() & 0xFF;
     }
     return ret;
 }
@@ -71,14 +71,7 @@ void handle_EEPROM_write()
 {
     byte rx_buffer[8];
     uint32_t bytes_received = 0;
-    while(bytes_received < 4)
-    {
-        while(!Serial.available()) continue;  // Loop until serial is available
-        rx_buffer[bytes_received] = Serial.read();
-        bytes_received++;
-    }   
-
-    uint32_t image_size = shiftInU32(rx_buffer);
+    uint32_t image_size = SerialShiftInU32();
 
     // Respond with acknowledge and and echo image size
     Serial.write(PORT_ACK);
@@ -138,16 +131,7 @@ void handle_EEPROM_write()
 
 void handle_EEPROM_dump()
 {
-    byte rx_buffer[8];
-    uint32_t bytes_received = 0;
-    while(bytes_received < 4)
-    {
-        while(!Serial.available()) continue;  // Loop until serial is available
-        rx_buffer[bytes_received] = Serial.read();
-        bytes_received++;
-    }   
-
-    uint32_t image_size = shiftInU32(rx_buffer);
+    uint32_t image_size = SerialShiftInU32();
 
     // Respond with acknowledge and echo image size
     Serial.write(PORT_ACK);
