@@ -186,61 +186,52 @@ void loop()
 	
 	char command_type = Serial.read();
 
-	if(command_type == PORT_SIG)    // Get Device Signature
-	{
-		Serial.write(PORT_ACK);	    // Acknowledge
-		Serial.write(FIRM_VER_MJR);	// Firmware major version
-		Serial.write(FIRM_VER_MNR);	// Firmware minor version
-		Serial.write(FIRM_VER_PCH);	// Firmware patch version
-		Serial.write(0x0A);         // Newline to finish transmission
-        return;
-	}
-
-	if(command_type == PORT_READ) // Read data from EEPROM
-	{
-		printContents();
-        Serial.write(0);  // Null byte to finish transmission
-        return;
-	}
-
-    if(command_type == PORT_DUMP) // Binary dump of the EEPROM data
+    switch(command_type)
     {
-        handle_EEPROM_dump();
-        return;
+        case PORT_SIG:                          // Get Device Signature
+            Serial.write(PORT_ACK);	            // Acknowledge
+            Serial.write(FIRM_VER_MJR);	        // Firmware major version
+            Serial.write(FIRM_VER_MNR);	        // Firmware minor version
+            Serial.write(FIRM_VER_PCH);	        // Firmware patch version
+            Serial.write(0x0A);                 // Newline to finish transmission
+            break;
+
+        case PORT_READ:                         // Read data from EEPROM
+            printContents();
+            Serial.write(0);                    // Null byte to finish transmission
+            break;
+
+        case PORT_DUMP:                         // Binary dump of the EEPROM data
+            handle_EEPROM_dump();
+            break;
+
+        case PORT_WRITE:                        // Write data to the EEPROM
+            handle_EEPROM_write();
+            break;
+
+        // Add some form of check to see if this was actually successful
+        case PORT_P_DIS:                        // Disable write protection
+            EEPROM::setDataDirection(OUTPUT);
+            EEPROM::writeByte(0x5555, 0xAA);
+            EEPROM::writeByte(0x2AAA, 0x55);
+            EEPROM::writeByte(0x5555, 0x80);
+            EEPROM::writeByte(0x5555, 0xAA);
+            EEPROM::writeByte(0x2AAA, 0x55);
+            EEPROM::writeByte(0x5555, 0x20);
+            delay(P_WRITE_DELAY);
+            break;
+
+        // Add some form of check to see if this was actually successful
+        case PORT_P_EN:                         // Enable write protection
+            EEPROM::setDataDirection(OUTPUT);
+            EEPROM::writeByte(0x5555, 0xAA);
+            EEPROM::writeByte(0x2AAA, 0x55);
+            EEPROM::writeByte(0x5555, 0xA0);
+            delay(P_WRITE_DELAY);
+            break;
+
+        default:                                // Unknown Command
+            Serial.write(PORT_NAK);
+            break;
     }
-
-	if(command_type == PORT_WRITE) // Write data to the EEPROM
-	{
-        handle_EEPROM_write();
-        return;
-	}
-
-    // Add some form of check to see if this was actually successful
-    if(command_type == PORT_P_DIS) // Disable write protection
-    {
-        EEPROM::setDataDirection(OUTPUT);
-        EEPROM::writeByte(0x5555, 0xAA);
-        EEPROM::writeByte(0x2AAA, 0x55);
-        EEPROM::writeByte(0x5555, 0x80);
-        EEPROM::writeByte(0x5555, 0xAA);
-        EEPROM::writeByte(0x2AAA, 0x55);
-        EEPROM::writeByte(0x5555, 0x20);
-        delay(P_WRITE_DELAY);
-        return;
-    }
-
-    // Add some form of check to see if this was actually successful
-    if(command_type == PORT_P_EN) // Enable write protection
-    {
-        EEPROM::setDataDirection(OUTPUT);
-        EEPROM::writeByte(0x5555, 0xAA);
-        EEPROM::writeByte(0x2AAA, 0x55);
-        EEPROM::writeByte(0x5555, 0xA0);
-        delay(P_WRITE_DELAY);
-        return;
-    }
-
-    // Unknown command type
-    Serial.write(PORT_NAK);
-	return;
 }
