@@ -55,6 +55,16 @@ uint32_t shiftInU32(uint8_t* u32_start)
     return ret;
 }
 
+/*
+    Send out a uint32_t as 4 uint8_t
+    Data will be LSB first
+*/
+inline void SerialShiftOutU32(uint32_t data)
+{
+    for(uint8_t i = 0; i < 4; i++)
+        Serial.write(((uint8_t*)(&data))[i]);
+}
+
 byte page[256];
 
 void handle_EEPROM_write()
@@ -72,10 +82,7 @@ void handle_EEPROM_write()
 
     // Respond with acknowledge and and echo image size
     Serial.write(PORT_ACK);
-    Serial.write(image_size & 0xFF);
-    Serial.write((image_size >> 8) & 0xFF);
-    Serial.write((image_size >> 16) & 0xFF);
-    Serial.write((image_size >> 24) & 0xFF);
+    SerialShiftOutU32(image_size);
 
     while(!Serial.available()) continue;        // Await acknowledge from computer
     byte response = Serial.read();
@@ -144,10 +151,7 @@ void handle_EEPROM_dump()
 
     // Respond with acknowledge and echo image size
     Serial.write(PORT_ACK);
-    Serial.write(image_size & 0xFF);
-    Serial.write((image_size >> 8) & 0xFF);
-    Serial.write((image_size >> 16) & 0xFF);
-    Serial.write((image_size >> 24) & 0xFF);
+    SerialShiftOutU32(image_size);
 
     while(!Serial.available()) continue;    // Await acknowledge from computer
     byte response = Serial.read();
