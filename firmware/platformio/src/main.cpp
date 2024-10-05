@@ -4,7 +4,7 @@
 
 #define FIRM_VER_MJR 0
 #define FIRM_VER_MNR 1
-#define FIRM_VER_PCH 0
+#define FIRM_VER_PCH 1
 
 #define PORT_TIMEOUT -1
 #define PORT_ACK     'A'
