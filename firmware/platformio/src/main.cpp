@@ -65,11 +65,9 @@ inline void SerialShiftOutU32(uint32_t data)
         Serial.write(((uint8_t*)(&data))[i]);
 }
 
-byte page[256];
-
 void handle_EEPROM_write()
 {
-    byte rx_buffer[8];
+    byte rx_buffer[256];
     uint32_t bytes_received = 0;
     uint32_t image_size = SerialShiftInU32();
 
@@ -94,19 +92,19 @@ void handle_EEPROM_write()
         while(bytes_received < 256)             // Read in 256 bytes (1 page) from the serial port
         {
             while(!Serial.available()) continue;
-            page[bytes_received] = Serial.read();
+            rx_buffer[bytes_received] = Serial.read();
             bytes_received++;
         }
         Serial.write(PORT_ACK);                 // Acknowledge page received
 
         // Write the data to the EEPROM
-        EEPROM::writePage(pages_received << 8, page);
+        EEPROM::writePage(pages_received << 8, rx_buffer);
         delay(P_WRITE_DELAY);
-        EEPROM::writePage((pages_received << 8) + 0x40, page + 0x40);
+        EEPROM::writePage((pages_received << 8) + 0x40, rx_buffer + 0x40);
         delay(P_WRITE_DELAY);
-        EEPROM::writePage((pages_received << 8) + 0x80, page + 0x80);
+        EEPROM::writePage((pages_received << 8) + 0x80, rx_buffer + 0x80);
         delay(P_WRITE_DELAY);
-        EEPROM::writePage((pages_received << 8) + 0xC0, page + 0xC0);
+        EEPROM::writePage((pages_received << 8) + 0xC0, rx_buffer + 0xC0);
         delay(P_WRITE_DELAY);
 
         // Check that the data was written to the EEPROM correctly
@@ -114,11 +112,11 @@ void handle_EEPROM_write()
         {
             byte byte_written = EEPROM::readByte((pages_received * 256) + idx);
             // This error routine need to be updated
-            if(byte_written != page[idx])
+            if(byte_written != rx_buffer[idx])
             {
                 Serial.write(PORT_ERR);
                 Serial.write(idx);
-                Serial.write(page[idx]);
+                Serial.write(rx_buffer[idx]);
                 Serial.write(byte_written);
             }
         }
