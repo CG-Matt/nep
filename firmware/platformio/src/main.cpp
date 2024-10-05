@@ -50,6 +50,7 @@ inline uint32_t SerialShiftInU32()
     for(uint8_t i = 0; i < 4; i++)
     {
         while(!Serial.available()) continue;  // Loop until serial is available
+        // This works because the Arduino Nano stores its data as little endian
         ((uint8_t*)(&ret))[i] = Serial.read() & 0xFF;
     }
     return ret;
@@ -62,6 +63,7 @@ inline uint32_t SerialShiftInU32()
 inline void SerialShiftOutU32(uint32_t data)
 {
     for(uint8_t i = 0; i < 4; i++)
+        // This works because the Arduino Nano stores its data as little endian
         Serial.write(((uint8_t*)(&data))[i]);
 }
 
@@ -71,7 +73,7 @@ void handle_EEPROM_write()
     uint32_t bytes_received = 0;
     uint32_t image_size = SerialShiftInU32();
 
-    // Respond with acknowledge and and echo image size
+    // Respond with acknowledge and echo image size
     Serial.write(PORT_ACK);
     SerialShiftOutU32(image_size);
 
@@ -183,7 +185,6 @@ void setup()
 void loop()
 {
 	while(!Serial.available()) continue;
-	
 	char command_type = Serial.read();
 
     switch(command_type)
