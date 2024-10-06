@@ -1,7 +1,12 @@
 #pragma once
 
 #include <stdint.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <termios.h>
+#endif
 
 #define PORT_TIMEOUT -1
 #define PORT_OK       0
@@ -17,6 +22,35 @@ struct SerialCommConfig
     int baud_rate;
 };
 
+#ifdef _WIN32
+
+// Define baudrates to be unix style
+#define B110        CBR_110
+#define B300        CBR_300
+#define B600        CBR_600
+#define B1200       CBR_1200
+#define B2400       CBR_2400
+#define B4800       CBR_4800
+#define B9600       CBR_9600
+#define B19200      CBR_19200
+#define B38400      CBR_38400
+#define B57600      CBR_57600
+#define B115200     CBR_115200
+
+struct SerialComm
+{
+    HANDLE hport;
+    int status;
+    DCB options;
+    struct SerialCommConfig config;
+    uint8_t* send_buffer;
+    uint8_t* receive_buffer;
+    size_t send_buffer_size;
+    size_t receive_buffer_size;
+};
+
+#else
+
 struct SerialComm
 {
     int port_fd;
@@ -28,6 +62,8 @@ struct SerialComm
     size_t send_buffer_size;
     size_t receive_buffer_size;
 };
+
+#endif
 
 // Serial Communication Port Initialisation, Deinitialisation and Configuration
 int SerialCommOpenPort(struct SerialComm* serial_port, const char* port_path, size_t buffer_size);

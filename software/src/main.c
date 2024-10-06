@@ -19,6 +19,13 @@
 #define oflush() fflush(stdout)
 #define eprintf(args...) fprintf(stderr, args)
 
+// Defining platform dependent error print function
+#ifdef _WIN32
+    #define PrintError(message) eprintf("%s, Error code: %ld\n", message, GetLastError());
+#else
+    #define PrintError(message) perror(message);
+#endif
+
 // Initialising global variables
 static char* executable_name = NULL;
 static int exit_code = EXIT_SUCCESS;
@@ -116,7 +123,7 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
 /*
     Wrapper function for the standard fopen() function which also sets the exit_code upon failure
 */
-static inline FILE* OpenFile(const char*__restrict__ filename, const char*__restrict__ modes)
+static inline FILE* IntOpenFile(const char*__restrict__ filename, const char*__restrict__ modes)
 {
     FILE* f = fopen(filename, modes);
     if(!f) exit_code = EXIT_FAILURE;
@@ -145,10 +152,9 @@ int main(int argc, char** argv)
     struct SerialComm port;
 
     /* Open the serial port */
-    SerialCommOpenPort(&port, serial_port_name, 0x200);
-    if(port.port_fd < 0)
+    if(!SerialCommOpenPort(&port, serial_port_name, 0x200))
     {
-        perror("Unable to open serial port");
+        PrintError("Failed to open serial port");
         return EXIT_FAILURE;
     }
 
@@ -160,7 +166,7 @@ int main(int argc, char** argv)
     /* Apply settings to serial port */
     if(!SerialCommApplyOptions(&port))
     {
-        perror("Failure to apply port configuration");
+        PrintError("Failure applying port configuration");
         SerialCommClosePort(&port);
         return EXIT_FAILURE;
     }
@@ -215,7 +221,7 @@ int main(int argc, char** argv)
                 break;
 
             // Open dump file for writing
-            FILE* dump = OpenFile(args.output, "wb");
+            FILE* dump = IntOpenFile(args.output, "wb");
             if(!dump)
             {
                 perror("Unable to open dump file for writing");
@@ -277,7 +283,7 @@ int main(int argc, char** argv)
             /* If an output file is provided */
             if(args.output)
             {
-                out_file = OpenFile(args.output, "w");
+                out_file = IntOpenFile(args.output, "w");
                 if(!out_file)
                 {
                     perror("Unable to open output file");
@@ -286,7 +292,7 @@ int main(int argc, char** argv)
             }
 
             /* Open file to compare EEPROM data against */
-            FILE* image = OpenFile(args.input, "rb");
+            FILE* image = IntOpenFile(args.input, "rb");
             if(!image)
             {
                 perror("Unable to open image file");
@@ -416,7 +422,7 @@ int main(int argc, char** argv)
         {
             if(!args.input){ eprintf("No image filename provided\n"); print_usage(); }
 
-            FILE* image_file = OpenFile(args.input, "rb");
+            FILE* image_file = IntOpenFile(args.input, "rb");
             if(!image_file)
             {
                 perror("Unable to open image file");
@@ -468,7 +474,7 @@ int main(int argc, char** argv)
                         return 1;
                     }
 
-                    printf("The serial port has sent an error status, Addr: 0x%02lX%02hhX E: 0x%02hhX R: 0x%02hhX\n", pages_sent - 1, port.receive_buffer[0], port.receive_buffer[1], port.receive_buffer[2]);
+                    printf("The serial port has sent an error status, Addr: 0x%02zX%02hhX E: 0x%02hhX R: 0x%02hhX\n", pages_sent - 1, port.receive_buffer[0], port.receive_buffer[1], port.receive_buffer[2]);
                     SerialCommAwaitStatus(&port);
                 }
 
@@ -494,7 +500,7 @@ int main(int argc, char** argv)
                 pages_sent++;
                 if((pages_sent << 8) % 1024 == 0)
                 {
-                    printf(" %luK", pages_sent >> 2);
+                    printf(" %zuK", pages_sent >> 2);
                     oflush();
                 }
             }
