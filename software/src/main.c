@@ -149,7 +149,7 @@ int main(int argc, char** argv)
     if(port.port_fd < 0)
     {
         perror("Unable to open serial port");
-        return -1;
+        return EXIT_FAILURE;
     }
 
     /* Set up serial port */
@@ -171,7 +171,7 @@ int main(int argc, char** argv)
     if(!get_device_signature(&port))
     {
         SerialCommClosePort(&port);
-        return -1;
+        return EXIT_FAILURE;
     }
 
     switch(args.mode)
