@@ -19,6 +19,12 @@
 #define oflush() fflush(stdout)
 #define eprintf(args...) fprintf(stderr, args)
 
+// Defining platform dependent error print function
+#ifdef _WIN32
+    #define PrintError(message) eprintf("%s, Error code: %ld\n", message, GetLastError());
+#else
+    #define PrintError(message) perror(message);
+#endif
 
 // Initialising global variables
 static char* executable_name = NULL;
@@ -148,11 +154,7 @@ int main(int argc, char** argv)
     /* Open the serial port */
     if(!SerialCommOpenPort(&port, serial_port_name, 0x200))
     {
-#ifdef _WIN32
-        printf("%ld\n", GetLastError());
-#else
-        perror("Unable to open serial port");
-#endif
+        PrintError("Failed to open serial port");
         return -1;
     }
 
@@ -164,11 +166,7 @@ int main(int argc, char** argv)
     /* Apply settings to serial port */
     if(!SerialCommApplyOptions(&port))
     {
-#ifdef _WIN32
-        printf("Failure applying port configuration. Error code: %d\n", GetLastError());
-#else
-        perror("Failure to apply port configuration");
-#endif
+        PrintError("Failure applying port configuration");
         SerialCommClosePort(&port);
         return EXIT_FAILURE;
     }
