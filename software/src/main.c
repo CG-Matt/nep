@@ -19,20 +19,6 @@
 #define oflush() fflush(stdout)
 #define eprintf(args...) fprintf(stderr, args)
 
-// Format string for printf statements
-#ifdef _WIN32
-static const char* fs_progress      = " %I32uK";
-static const char* fs_bad_byte      = "Invalid byte at address 0x%04I32X, Expected: %02hhX, Read: %02hhX\n";
-static const char* fs_bad_byte_log  = "%04I32X: %02X, %02X\n";
-static const char* fs_port_error    = "The serial port has sent an error status, Addr: 0x%02llX%02hhX E: 0x%02hhX R: 0x%02hhX\n";
-static const char* fs_port_unexpect = "Device sent unexpected signal [%2hX] (Awaiting ready)\n";
-#else
-static const char* fs_progress      = " %zuK";
-static const char* fs_bad_byte      = "Invalid byte at address 0x%04zX, Expected: %02hhX, Read: %02hhX\n";
-static const char* fs_bad_byte_log  = "%04zX: %02X, %02X\n";
-static const char* fs_port_error    = "The serial port has sent an error status, Addr: 0x%02lX%02hhX E: 0x%02hhX R: 0x%02hhX\n";
-static const char* fs_port_unexpect = "Device sent unexpected signal [%2hhX] (Awaiting ready)\n";
-#endif
 
 // Initialising global variables
 static char* executable_name = NULL;
@@ -272,7 +258,7 @@ int main(int argc, char** argv)
                 if(bytes_received_wrap >= 1024)
                 {
                     kb_received++;
-                    printf(fs_progress, (uint32_t)kb_received);
+                    printf(" %zuK", kb_received);
                     oflush();
                     bytes_received_wrap -= 1024;
                 }
@@ -367,7 +353,7 @@ int main(int argc, char** argv)
                 if(bytes_received_wrap >= 1024)
                 {
                     kb_received++;
-                    printf(fs_progress, kb_received);
+                    printf(" %zuK", kb_received);
                     oflush();
                     bytes_received_wrap -= 1024;
                 }
@@ -405,11 +391,11 @@ int main(int argc, char** argv)
                         ok = 0;
                     }
 
-                    printf(fs_bad_byte, (uint32_t)i, image_byte, eeprom_byte);
+                    printf("Invalid byte at address 0x%04zX, Expected: %02hhX, Read: %02hhX\n", i, image_byte, eeprom_byte);
 
                     if(out_file)
                     {
-                        fprintf(out_file, fs_bad_byte_log, (uint32_t)i, image_byte, eeprom_byte);
+                        fprintf(out_file, "%04zX: %02X, %02X\n", i, image_byte, eeprom_byte);
                     }
                 }
             }
@@ -490,14 +476,14 @@ int main(int argc, char** argv)
                         return 1;
                     }
 
-                    printf(fs_port_error, pages_sent - 1, port.receive_buffer[0], port.receive_buffer[1], port.receive_buffer[2]);
+                    printf("The serial port has sent an error status, Addr: 0x%02zX%02hhX E: 0x%02hhX R: 0x%02hhX\n", pages_sent - 1, port.receive_buffer[0], port.receive_buffer[1], port.receive_buffer[2]);
                     SerialCommAwaitStatus(&port);
                 }
 
                 // This should error or block
                 if(port.status != PORT_RDY)
                 {
-                    printf(fs_port_unexpect, port.status);
+                    printf("Device sent unexpected signal [%2hhX] (Awaiting ready)\n", port.status);
                     free(image_data);
                     SerialCommClosePort(&port);
                     return 1;
@@ -516,7 +502,7 @@ int main(int argc, char** argv)
                 pages_sent++;
                 if((pages_sent << 8) % 1024 == 0)
                 {
-                    printf(fs_progress, (uint32_t)(pages_sent >> 2));
+                    printf(" %zuK", pages_sent >> 2);
                     oflush();
                 }
             }
