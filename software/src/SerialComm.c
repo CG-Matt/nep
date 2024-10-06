@@ -56,7 +56,6 @@ void SerialCommSendBytesExt(struct SerialComm* port, void* src, size_t count)
 {
     long unsigned int bytes_written;
     WriteFile(port->hport, src, count, &bytes_written, NULL);
-    printf("Writing data: E:%d W:%ld\n", (int)count, bytes_written);
 }
 
 int SerialCommReadBytesExt(struct SerialComm* port, void* dest, size_t count)
