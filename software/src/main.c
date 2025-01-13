@@ -27,13 +27,13 @@
 #endif
 
 // Initialising global variables
-static char* executable_name = NULL;
-static int exit_code = EXIT_SUCCESS;
+static char* g_executable_name = NULL;
+static int g_exit_code = EXIT_SUCCESS;
 
 /* Update this to be more accurate */
 void print_usage()
 {
-    printf("usage: %s <port> <mode> [<options>]\n", executable_name);
+    printf("usage: %s <port> <mode> [<options>]\n", g_executable_name);
     printf("  port: Serial port path. e.g. /dev/tty5\n");
     printf("  mode:\n");
     printf("    -r              Read the contents of the EEPROM,\n");
@@ -85,7 +85,7 @@ int get_device_signature(struct SerialComm* device_port)
 }
 
 // Send the image size to the device and validate correct echo of size
-// Sets exit_code to ```EXIT_FAILURE``` if an error is encountered
+// Sets g_exit_code to ```EXIT_FAILURE``` if an error is encountered
 int SendImageSize(struct SerialComm* port, uint32_t size)
 {
     SerialCommSendU32(port, size);          // Send the image size
@@ -94,14 +94,14 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     if(port->status == PORT_TIMEOUT)
     {
         eprintf("ERROR: Devices has not responded. Timing out...\n");
-        exit_code = EXIT_FAILURE;
+        g_exit_code = EXIT_FAILURE;
         return 0;
     }
 
     if(port->status != PORT_ACK)
     {
         eprintf("ERROR: Device did not acknowledge image size receive\n");
-        exit_code = EXIT_FAILURE;
+        g_exit_code = EXIT_FAILURE;
         return 0;
     }
 
@@ -110,7 +110,7 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     if(port->status == PORT_TIMEOUT)
     {
         eprintf("ERROR: Port timed out awaiting u32 value\n");
-        exit_code = EXIT_FAILURE;
+        g_exit_code = EXIT_FAILURE;
         return 0;
     }
 
@@ -118,7 +118,7 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     {
         SerialCommSendByte(port, PORT_NAK);
         eprintf("ERROR: Image size did not echo correct (0x%08X) [%02X %02X %02X %02X]\n", r_size, port->receive_buffer[3], port->receive_buffer[2], port->receive_buffer[1], port->receive_buffer[0]);
-        exit_code = EXIT_FAILURE;
+        g_exit_code = EXIT_FAILURE;
         return 0;
     }
 
@@ -133,13 +133,13 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
 static inline FILE* IntOpenFile(const char*__restrict__ filename, const char*__restrict__ modes)
 {
     FILE* f = fopen(filename, modes);
-    if(!f) exit_code = EXIT_FAILURE;
+    if(!f) g_exit_code = EXIT_FAILURE;
     return f;
 }
 
 int main(int argc, char** argv)
 {
-    executable_name = argv[0];  // First argument is the name of the file being executed
+    g_executable_name = argv[0];  // First argument is the name of the file being executed
 
     // Check if at the minimum a serial port file name is provided
     if(argc < 2) print_usage();
@@ -281,7 +281,7 @@ int main(int argc, char** argv)
             if(!args.input)
             {
                 eprintf("ERROR: No image was provided to verify the EEPROM's data against\n");
-                exit_code = EXIT_FAILURE;
+                g_exit_code = EXIT_FAILURE;
                 break;
             }
 
@@ -324,7 +324,7 @@ int main(int argc, char** argv)
                 perror("Unable to open dump file for writing");
                 if(out_file) fclose(out_file);
                 fclose(image);
-                exit_code = EXIT_FAILURE;
+                g_exit_code = EXIT_FAILURE;
                 break;
             }
 
@@ -369,7 +369,7 @@ int main(int argc, char** argv)
                 if(out_file) fclose(out_file);
                 fclose(eeprom_data);
                 fclose(image);
-                exit_code = EXIT_FAILURE;
+                g_exit_code = EXIT_FAILURE;
                 break;
             }
 
@@ -518,5 +518,5 @@ int main(int argc, char** argv)
     }
 
     SerialCommClosePort(&port);
-    return exit_code;
+    return g_exit_code;
 }
