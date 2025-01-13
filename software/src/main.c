@@ -61,13 +61,13 @@ int get_device_signature(struct SerialComm* device_port)
 
     if(device_port->status == PORT_TIMEOUT)     // Device has not responded
     {
-        eprintf("Devices has not responded. Timing out...\n");
+        eprintf("ERROR: Devices has not responded. Timing out...\n");
         return 0;
     }
 
     if(device_port->status != PORT_ACK)
     {
-        eprintf("Devices has not acknowledged signature request.\n");
+        eprintf("ERROR: Devices has not acknowledged signature request.\n");
         return 0;
     }
 
@@ -93,14 +93,14 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
 
     if(port->status == PORT_TIMEOUT)
     {
-        eprintf("Devices has not responded. Timing out...\n");
+        eprintf("ERROR: Devices has not responded. Timing out...\n");
         exit_code = EXIT_FAILURE;
         return 0;
     }
 
     if(port->status != PORT_ACK)
     {
-        eprintf("Device did not acknowledge image size receive\n");
+        eprintf("ERROR: Device did not acknowledge image size receive\n");
         exit_code = EXIT_FAILURE;
         return 0;
     }
@@ -109,7 +109,7 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
 
     if(port->status == PORT_TIMEOUT)
     {
-        eprintf("Port timed out awaiting u32 value\n");
+        eprintf("ERROR: Port timed out awaiting u32 value\n");
         exit_code = EXIT_FAILURE;
         return 0;
     }
@@ -117,7 +117,7 @@ int SendImageSize(struct SerialComm* port, uint32_t size)
     if(r_size != size)
     {
         SerialCommSendByte(port, PORT_NAK);
-        eprintf("Image size did not echo correct (0x%08X) [%02X %02X %02X %02X]\n", r_size, port->receive_buffer[3], port->receive_buffer[2], port->receive_buffer[1], port->receive_buffer[0]);
+        eprintf("ERROR: Image size did not echo correct (0x%08X) [%02X %02X %02X %02X]\n", r_size, port->receive_buffer[3], port->receive_buffer[2], port->receive_buffer[1], port->receive_buffer[0]);
         exit_code = EXIT_FAILURE;
         return 0;
     }
@@ -200,7 +200,7 @@ int main(int argc, char** argv)
                     SerialCommAwaitData(&port);
                     if(port.status == PORT_TIMEOUT)
                     {
-                        eprintf("\nDevice has stopped responding.\n");
+                        eprintf("\nERROR: Device has stopped responding.\n");
                         break;
                     }
 
@@ -217,7 +217,7 @@ int main(int argc, char** argv)
             // If an output file was specified we will be dumping the EEPROMs contents into it
             if(!args.size)
             {
-                eprintf("No file size was provided for the dump\n");
+                eprintf("ERROR: No file size was provided for the dump\n");
                 print_usage();
             }
 
@@ -252,7 +252,7 @@ int main(int argc, char** argv)
                 SerialCommAwaitData(&port);
                 if(port.status == PORT_TIMEOUT)
                 {
-                    eprintf("\nDevice has stopped responding.");
+                    eprintf("\nERROR: Device has stopped responding.");
                     break;
                 }
                 bytes_read = SerialCommReadPortAll(&port);
@@ -280,7 +280,7 @@ int main(int argc, char** argv)
         {
             if(!args.input)
             {
-                eprintf("No image was provided to verify the EEPROM's data against\n");
+                eprintf("ERROR: No image was provided to verify the EEPROM's data against\n");
                 exit_code = EXIT_FAILURE;
                 break;
             }
@@ -346,7 +346,7 @@ int main(int argc, char** argv)
                 SerialCommAwaitData(&port);
                 if(port.status == PORT_TIMEOUT)
                 {
-                    eprintf("\nDevice has stopped responding.\n");
+                    eprintf("\nERROR: Device has stopped responding.\n");
                     dump_ok = false;
                     break;
                 }
@@ -427,7 +427,7 @@ int main(int argc, char** argv)
         
         case MODE_WRITE:
         {
-            if(!args.input){ eprintf("No image filename provided\n"); print_usage(); }
+            if(!args.input){ eprintf("ERROR: No image filename provided\n"); print_usage(); }
 
             FILE* image_file = IntOpenFile(args.input, "rb");
             if(!image_file)
@@ -475,7 +475,7 @@ int main(int argc, char** argv)
                     SerialCommReadBytes(&port, 3);
                     if(port.status == PORT_TIMEOUT)
                     {
-                        eprintf("The port timed out while reading device error\n");
+                        eprintf("ERROR: The port timed out while reading device error\n");
                         free(image_data);
                         SerialCommClosePort(&port);
                         return 1;
