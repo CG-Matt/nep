@@ -33,14 +33,21 @@ static int exit_code = EXIT_SUCCESS;
 /* Update this to be more accurate */
 void print_usage()
 {
-    printf("Usage: %s PORT OPTION\n", executable_name);
-    printf("PORT: Serial port file\n");
-    printf("OPTIONS:\n");
-    printf("\t-r [filename]\t\tRead the contents of the EEPROM, optional write those contents into a file\n");
-    printf("\t-w <filename>\t\tWrite an image from a file to the EEPROM\n");
-    printf("\t-v <filename>\t\tVerify data on EEPROM against an image\n");
-    printf("\t-e <filename>\t\tEnable write protection\n");
-    printf("\t-d <filename>\t\tDisable write protection\n");
+    printf("usage: %s <port> <mode> [<options>]\n", executable_name);
+    printf("  port: Serial port path. e.g. /dev/tty5\n");
+    printf("  mode:\n");
+    printf("    -r              Read the contents of the EEPROM,\n");
+    printf("                      If no output file path is provided, it prints the contents of the EEPROM to the console\n");
+    printf("                      If an output file path is provided, writes the contents of the EEPROM to a binary file\n");
+    printf("    -w              Write a binary image from a file to the EEPROM\n");
+    printf("    -v              Verify the image in the provided file against the image on the EEPROM\n");
+    printf("                      and print out the differences\n");
+    printf("    -e              Enable the write protection on the EEPROM\n");
+    printf("    -d              Disable the write protection on the EEPROM\n");
+    printf("  options:\n");
+    printf("    -i <path>       Path to the input file\n");
+    printf("    -o <path>       Path to the output file\n");
+    printf("    -s <size>       Size of the image in bytes, e.g. 32K\n");
 
     exit(EXIT_FAILURE);
 }
