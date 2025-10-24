@@ -5,15 +5,13 @@
 
 #define eprintf(args...) fprintf(stderr, args)
 
-struct Arguments ParseArguments(int argc, char** args)
+int ParseArguments(struct Arguments* args_dest, int argc, char** args)
 {
     // Setup output struct
-    struct Arguments out;
-    out.input = NULL;
-    out.output = NULL;
-    out.size = NULL;
-    out.mode = 0;
-    out.parsed = 0;
+    args_dest->input = NULL;
+    args_dest->output = NULL;
+    args_dest->size = NULL;
+    args_dest->mode = 0;
 
     for(int i = 0; i < argc; i++)
     {
@@ -25,13 +23,13 @@ struct Arguments ParseArguments(int argc, char** args)
             if(strlen(cur_arg) < 2)
             {
                 eprintf("No argument provided after argument marker.\n");
-                return out;
+                return 0;
             }
 
             if(strlen(cur_arg) > 2)
             {
                 eprintf("Unrecognised argument '%s'.\n", cur_arg);
-                return out;
+                return 0;
             }
 
             char arg = cur_arg[1];
@@ -44,44 +42,42 @@ struct Arguments ParseArguments(int argc, char** args)
                 case 'e':
                 case 'd':
                 case 'v':
-                    if(out.mode){ eprintf("Mode set more than once.\n"); return out; }
-
-                    out.mode = arg;
+                    if(args_dest->mode){ eprintf("Mode set more than once.\n"); return 0; }
+                    args_dest->mode = arg;
                     break;
 
                 // Input file set
                 case 'i':
-                    if(out.input){ eprintf("Duplicate input file argument provided.\n"); return out; }
-                    if(i + 1 >= argc){ eprintf("Expected input file name after '-i' argument\n"); return out; }
+                    if(args_dest->input){ eprintf("Duplicate input file argument provided.\n"); return 0; }
+                    if(i + 1 >= argc){ eprintf("Expected input file name after '-i' argument\n"); return 0; }
 
-                    out.input = args[i + 1];
+                    args_dest->input = args[i + 1];
                     break;
 
                 // Output file set
                 case 'o':
-                    if(out.output){ eprintf("Duplicate output file argument provided.\n"); return out; }
-                    if(i + 1 >= argc){ eprintf("Expected output file name after '-o' argument\n"); return out; }
+                    if(args_dest->output){ eprintf("Duplicate output file argument provided.\n"); return 0; }
+                    if(i + 1 >= argc){ eprintf("Expected output file name after '-o' argument\n"); return 0; }
 
-                    out.output = args[i + 1];
+                    args_dest->output = args[i + 1];
                     break;
 
                 // Size set
                 case 's':
-                    if(out.size){ eprintf("Duplicate size argument provided.\n"); return out; }
-                    if(i + 1 >= argc){ eprintf("Expected size after '-s' argument\n"); return out; }
+                    if(args_dest->size){ eprintf("Duplicate size argument provided.\n"); return 0; }
+                    if(i + 1 >= argc){ eprintf("Expected size after '-s' argument\n"); return 0; }
                     
-                    out.size = args[i + 1];
+                    args_dest->size = args[i + 1];
                     break;
 
                 default:
                     eprintf("Unknown argument '%s'\n", cur_arg);
-                    return out;
+                    return 0;
             }
         }
     }
 
-    out.parsed = 1;
-    return out;
+    return 1;
 }
 
 size_t ParseImageSize(const char* const_size_str)

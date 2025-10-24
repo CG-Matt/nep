@@ -145,13 +145,10 @@ int main(int argc, char** argv)
     if(argc < 2) print_usage();
 
     // We remove the executable name and serial port file name from the args
-    struct Arguments args = ParseArguments(argc - 2, argv + 2);
-
-    // Exit if there has been an error processing the arguments
-    if(!args.parsed) print_usage();
-
-    // Make an alias for the serial ports file name
-    char* serial_port_name = argv[1];
+    // and exit if there has been an error processing the arguments
+    struct Arguments args;
+    if(!ParseArguments(&args, argc - 2, argv + 2))
+        print_usage();
 
     // Exit program if no mode argument was provided
     if(!args.mode) print_usage();
@@ -159,7 +156,7 @@ int main(int argc, char** argv)
     struct SerialComm port;
 
     /* Open the serial port */
-    if(!SerialCommOpenPort(&port, serial_port_name, 0x200))
+    if(!SerialCommOpenPort(&port, argv[1], 0x200))
     {
         PrintError("Failed to open serial port");
         return EXIT_FAILURE;

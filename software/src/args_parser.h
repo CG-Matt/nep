@@ -14,9 +14,8 @@ struct Arguments
     char* output;
     char* size;
     char mode;
-    int parsed;
 };
 
-struct Arguments ParseArguments(int arg_count, char** args);
+int ParseArguments(struct Arguments* args_dest, int arg_count, char** args);
 
 size_t ParseImageSize(const char* size_string);
